@@ -100,10 +100,23 @@ const ResumeBuilder = () => {
       const canvas = await html2canvas(element, { scale: 2, useCORS: true });
       const imgData = canvas.toDataURL('image/png');
 
-      const pdfWidth = 8.5;
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      const pdf = new jsPDF({ unit: 'in', format: [pdfWidth, pdfHeight] });
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      const pdf = new jsPDF({ unit: 'in', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgAspectRatio = canvas.width / canvas.height;
+      let renderWidth = pageWidth;
+      let renderHeight = pageWidth / imgAspectRatio;
+
+      if (renderHeight > pageHeight) {
+        renderHeight = pageHeight;
+        renderWidth = pageHeight * imgAspectRatio;
+      }
+
+      const x = (pageWidth - renderWidth) / 2;
+      const y = (pageHeight - renderHeight) / 2;
+
+      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
       pdf.save(`${resumeData.title || 'resume'}.pdf`);
     } catch (error) {
       toast.error('Failed to download resume');
