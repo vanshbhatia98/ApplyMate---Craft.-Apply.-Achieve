@@ -139,7 +139,11 @@ export const uploadResume = async (req, res) => {
             response_format: {type: 'json_object'}
         })
 
-        const extractedData = response.choices[0].message.content;
+        const extractedData = response.choices[0].message.content
+            .replace(/^```json\s*/i, '')
+            .replace(/^```\s*/, '')
+            .replace(/```\s*$/, '')
+            .trim();
         const parsedData = JSON.parse(extractedData)
         const newResume = await Resume.create({userId, title, ...parsedData})
 
