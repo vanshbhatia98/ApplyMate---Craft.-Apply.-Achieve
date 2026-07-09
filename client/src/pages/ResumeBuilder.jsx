@@ -1,7 +1,9 @@
 import React, { act, useEffect, useState } from 'react'
 import { Link , useParams } from 'react-router-dom'
 import { dummyResumeData } from '../assets/assets'
-import { ArrowLeftIcon, Briefcase, ChevronLeft, ChevronRight, DownloadIcon, EyeIcon, EyeOffIcon, FileText, FolderIcon, GraduationCap, Share2Icon, Sparkles, User } from 'lucide-react'
+import { ArrowLeftIcon, Briefcase, ChevronLeft, ChevronRight, DownloadIcon, EyeIcon, EyeOffIcon, FileText, FolderIcon, GraduationCap, Loader2, Share2Icon, Sparkles, User } from 'lucide-react'
+import html2canvas from 'html2canvas'
+import jsPDF from 'jspdf'
 import PersonalInfoForm from '../components/PersonalInfoForm'
 import ResumePreview from '../components/ResumePreview'
 import TemplateSelector from '../components/TemplateSelector'
@@ -89,8 +91,25 @@ const ResumeBuilder = () => {
     }
   }
 
-  const downloadResume = () =>{
-    window.print();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const downloadResume = async () => {
+    try {
+      setIsDownloading(true);
+      const element = document.getElementById('resume-preview');
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+
+      const pdf = new jsPDF({ unit: 'in', format: 'letter' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`${resumeData.title || 'resume'}.pdf`);
+    } catch (error) {
+      toast.error('Failed to download resume');
+    } finally {
+      setIsDownloading(false);
+    }
   }
 
   const saveResume = async () => {
@@ -192,8 +211,9 @@ const ResumeBuilder = () => {
                       }
                       {resumeData.public ? 'Public' : 'Private'}
                   </button>
-                  <button onClick={downloadResume} className='flex items-center gap-2 px-6 py-2 text-xs font-medium bg-emerald-500 text-slate-950 rounded-lg shadow-sm shadow-emerald-500/20 hover:bg-emerald-400 transition-all font-semibold'>
-                    <DownloadIcon className='size-4'/> Download
+                  <button onClick={downloadResume} disabled={isDownloading} className='flex items-center gap-2 px-6 py-2 text-xs font-medium bg-emerald-500 text-slate-950 rounded-lg shadow-sm shadow-emerald-500/20 hover:bg-emerald-400 transition-all font-semibold disabled:opacity-50'>
+                    {isDownloading ? <Loader2 className='size-4 animate-spin'/> : <DownloadIcon className='size-4'/>}
+                    {isDownloading ? 'Downloading...' : 'Download'}
                   </button>
                 </div>
               </div>
