@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 3000;
 await connectDb();
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({ origin: process.env.CLIENT_URL || "*" }))
 
 app.get('/',(req, res) => res.send("Server is live..."))
 app.use('/api/users', userRouter)
