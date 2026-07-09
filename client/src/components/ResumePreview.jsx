@@ -26,21 +26,23 @@ const ResumePreview = ({data, template, accentColor, classes = ""}) => {
         </div>
         <style>
             {`
-            @page{
-            size: letter;
-            margin: 0;
-            }
             @media print {
+            @page{
+               size: A4;
+               margin: 0;
+            }
             html, body{
-               width: 8.5in;
-               height: 11in;
-               overflow: hidden;
+               width: 100%;
+               height: auto;
             }
             body * {
                visibility: hidden;
             }
             #resume-preview, #resume-preview * {
                visibility: visible;
+               -webkit-print-color-adjust: exact;
+               print-color-adjust: exact;
+               color-adjust: exact;
             }
             #resume-preview {
                position: absolute;

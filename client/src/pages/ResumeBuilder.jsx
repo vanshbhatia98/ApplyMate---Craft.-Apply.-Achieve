@@ -1,9 +1,7 @@
 import React, { act, useEffect, useState } from 'react'
 import { Link , useParams } from 'react-router-dom'
 import { dummyResumeData } from '../assets/assets'
-import { ArrowLeftIcon, Briefcase, ChevronLeft, ChevronRight, DownloadIcon, EyeIcon, EyeOffIcon, FileText, FolderIcon, GraduationCap, Loader2, Share2Icon, Sparkles, User } from 'lucide-react'
-import html2canvas from 'html2canvas-pro'
-import jsPDF from 'jspdf'
+import { ArrowLeftIcon, Briefcase, ChevronLeft, ChevronRight, DownloadIcon, EyeIcon, EyeOffIcon, FileText, FolderIcon, GraduationCap, Share2Icon, Sparkles, User } from 'lucide-react'
 import PersonalInfoForm from '../components/PersonalInfoForm'
 import ResumePreview from '../components/ResumePreview'
 import TemplateSelector from '../components/TemplateSelector'
@@ -91,61 +89,8 @@ const ResumeBuilder = () => {
     }
   }
 
-  const [isDownloading, setIsDownloading] = useState(false);
-
-  const downloadResume = async () => {
-    try {
-      setIsDownloading(true);
-      const element = document.getElementById('resume-preview');
-      const scale = 2;
-
-      // Record safe (non-splittable) content blocks before rasterizing, so page
-      // breaks can be snapped to gaps between them instead of cutting through text.
-      const elementRect = element.getBoundingClientRect();
-      const blocks = [...element.querySelectorAll('*')]
-        .filter(el => el.children.length === 0 && el.textContent.trim().length > 0)
-        .map(el => {
-          const r = el.getBoundingClientRect();
-          return { top: (r.top - elementRect.top) * scale, bottom: (r.bottom - elementRect.top) * scale };
-        });
-
-      const canvas = await html2canvas(element, { scale, useCORS: true });
-
-      const pdf = new jsPDF({ unit: 'in', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const pagePixelHeight = (canvas.width * pageHeight) / pageWidth;
-
-      let cursor = 0;
-      let pageIndex = 0;
-
-      while (cursor < canvas.height) {
-        let cutAt = Math.min(cursor + pagePixelHeight, canvas.height);
-
-        if (cutAt < canvas.height) {
-          const breaking = blocks.find(b => b.top >= cursor && b.top < cutAt && b.bottom > cutAt);
-          if (breaking && breaking.top > cursor) cutAt = breaking.top;
-        }
-
-        const sliceHeight = cutAt - cursor;
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = sliceHeight;
-        pageCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-        if (pageIndex > 0) pdf.addPage();
-        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, (sliceHeight * pageWidth) / canvas.width);
-
-        cursor = cutAt;
-        pageIndex++;
-      }
-
-      pdf.save(`${resumeData.title || 'resume'}.pdf`);
-    } catch (error) {
-      toast.error('Failed to download resume');
-    } finally {
-      setIsDownloading(false);
-    }
+  const downloadResume = () => {
+    window.print();
   }
 
   const saveResume = async () => {
@@ -247,9 +192,8 @@ const ResumeBuilder = () => {
                       }
                       {resumeData.public ? 'Public' : 'Private'}
                   </button>
-                  <button onClick={downloadResume} disabled={isDownloading} className='flex items-center gap-2 px-6 py-2 text-xs font-medium bg-emerald-500 text-slate-950 rounded-lg shadow-sm shadow-emerald-500/20 hover:bg-emerald-400 transition-all font-semibold disabled:opacity-50'>
-                    {isDownloading ? <Loader2 className='size-4 animate-spin'/> : <DownloadIcon className='size-4'/>}
-                    {isDownloading ? 'Downloading...' : 'Download'}
+                  <button onClick={downloadResume} className='flex items-center gap-2 px-6 py-2 text-xs font-medium bg-emerald-500 text-slate-950 rounded-lg shadow-sm shadow-emerald-500/20 hover:bg-emerald-400 transition-all font-semibold'>
+                    <DownloadIcon className='size-4'/> Download
                   </button>
                 </div>
               </div>
