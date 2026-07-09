@@ -57,6 +57,10 @@ const Dashboard = () => {
     setIsLoading(true)
     try {
       const resumeText = await pdfToText(resume)
+      if(!resumeText || !resumeText.trim()){
+        toast.error('Could not read any text from this PDF. It may be a scanned/image-based file — try a different one.')
+        return
+      }
       const { data } = await api.post('/api/ai/upload-resume', {title, resumeText}, {headers: {
         Authorization: token
       }})
