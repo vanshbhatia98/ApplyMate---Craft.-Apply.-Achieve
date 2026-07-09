@@ -97,26 +97,49 @@ const ResumeBuilder = () => {
     try {
       setIsDownloading(true);
       const element = document.getElementById('resume-preview');
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
+      const scale = 2;
+
+      // Record safe (non-splittable) content blocks before rasterizing, so page
+      // breaks can be snapped to gaps between them instead of cutting through text.
+      const elementRect = element.getBoundingClientRect();
+      const blocks = [...element.querySelectorAll('*')]
+        .filter(el => el.children.length === 0 && el.textContent.trim().length > 0)
+        .map(el => {
+          const r = el.getBoundingClientRect();
+          return { top: (r.top - elementRect.top) * scale, bottom: (r.bottom - elementRect.top) * scale };
+        });
+
+      const canvas = await html2canvas(element, { scale, useCORS: true });
 
       const pdf = new jsPDF({ unit: 'in', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
+      const pagePixelHeight = (canvas.width * pageHeight) / pageWidth;
 
-      const imgAspectRatio = canvas.width / canvas.height;
-      let renderWidth = pageWidth;
-      let renderHeight = pageWidth / imgAspectRatio;
+      let cursor = 0;
+      let pageIndex = 0;
 
-      if (renderHeight > pageHeight) {
-        renderHeight = pageHeight;
-        renderWidth = pageHeight * imgAspectRatio;
+      while (cursor < canvas.height) {
+        let cutAt = Math.min(cursor + pagePixelHeight, canvas.height);
+
+        if (cutAt < canvas.height) {
+          const breaking = blocks.find(b => b.top >= cursor && b.top < cutAt && b.bottom > cutAt);
+          if (breaking && breaking.top > cursor) cutAt = breaking.top;
+        }
+
+        const sliceHeight = cutAt - cursor;
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+        pageCanvas.getContext('2d').drawImage(canvas, 0, cursor, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+        if (pageIndex > 0) pdf.addPage();
+        pdf.addImage(pageCanvas.toDataURL('image/png'), 'PNG', 0, 0, pageWidth, (sliceHeight * pageWidth) / canvas.width);
+
+        cursor = cutAt;
+        pageIndex++;
       }
 
-      const x = (pageWidth - renderWidth) / 2;
-      const y = (pageHeight - renderHeight) / 2;
-
-      pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
       pdf.save(`${resumeData.title || 'resume'}.pdf`);
     } catch (error) {
       toast.error('Failed to download resume');
